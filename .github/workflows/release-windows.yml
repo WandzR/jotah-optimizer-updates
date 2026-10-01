@@ -38,6 +38,13 @@ jobs:
           if (-not $env:JOTAH_RELEASE_PRIVATE_KEY) { throw 'Assinatura de release não configurada.' }
           git rev-parse HEAD
       - run: npm ci
+      - name: Validar o script de instalação antes de publicar
+        shell: pwsh
+        run: |
+          $parseTokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'tools/Test-Installer-Update.ps1'), [ref]$parseTokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count) { throw 'Sintaxe do ensaio de instalação inválida.' }
       - run: npm test
       - name: Gerar instalador assinado
         env:
