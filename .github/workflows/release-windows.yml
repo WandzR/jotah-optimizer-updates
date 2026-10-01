@@ -1,0 +1,66 @@
+name: Publicar Jotah para Windows
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+concurrency:
+  group: release-windows
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: WandzR/jotah-optimizer
+          ref: ${{ github.ref_name }}
+          path: source
+          ssh-key: ${{ secrets.JOTAH_SOURCE_READ_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Conferir destino, versão e assinatura
+        shell: pwsh
+        env:
+          JOTAH_RELEASE_PRIVATE_KEY: ${{ secrets.JOTAH_RELEASE_PRIVATE_KEY }}
+        run: |
+          $destination = (Get-Content release-config.json -Raw | ConvertFrom-Json).repository
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($destination -ne $env:GITHUB_REPOSITORY -or $env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag ou repositório divergentes.' }
+          if (-not $env:JOTAH_RELEASE_PRIVATE_KEY) { throw 'Assinatura de release não configurada.' }
+          git rev-parse HEAD
+      - run: npm ci
+      - run: npm test
+      - name: Gerar instalador assinado
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          JOTAH_SIGNING_PUBLISHER: ${{ vars.JOTAH_SIGNING_PUBLISHER }}
+          JOTAH_RELEASE_PRIVATE_KEY: ${{ secrets.JOTAH_RELEASE_PRIVATE_KEY }}
+          JOTAH_REQUIRE_AUTHENTICODE: ${{ vars.JOTAH_REQUIRE_AUTHENTICODE }}
+        run: npm run build:installer
+      - name: Verificar e publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/publish-release.cjs
+      - name: Testar atualização real do instalador
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.0' -ToVersion $version
+      - name: Guardar evidências do ensaio
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: installer-update-evidence
+          path: source/build/update-smoke/evidence/
+          if-no-files-found: ignore
+          retention-days: 14
