@@ -46,6 +46,13 @@ jobs:
           [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'tools/Test-Installer-Update.ps1'), [ref]$parseTokens, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count) { throw 'Sintaxe do ensaio de instalação inválida.' }
       - run: npm test
+      - name: Conferir restauracao do motor Windows
+        shell: pwsh
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/Jotah.Engine.Tests.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Testes do motor falharam.' }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/Jotah.AdditionalActions.Tests.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Testes de inicializacao e acoes adicionais falharam.' }
       - name: Gerar instalador assinado
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
