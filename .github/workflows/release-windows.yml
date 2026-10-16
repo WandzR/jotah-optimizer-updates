@@ -68,18 +68,49 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node tools/publish-release.cjs
-      - name: Testar atualização real do instalador
-        shell: pwsh
-        run: |
-          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.0' -ToVersion $version -RequireProtectedPackage
       - name: Guardar evidências do ensaio
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
+          name: installer-build-evidence
+          path: source/build/cleanup-smoke/evidence/
+          if-no-files-found: ignore
+          retention-days: 14
+  update:
+    needs: release
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      # A fresh runner keeps the current-profile fixture from the installer
+      # cleanup check out of the legacy-profile migration scenario.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: WandzR/jotah-optimizer
+          ref: ${{ github.ref_name }}
+          path: source
+          ssh-key: ${{ secrets.JOTAH_SOURCE_READ_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - run: npm ci
+      - name: Testar atualizacao automatica em perfil antigo isolado
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.0' -ToVersion $version -RequireProtectedPackage
+      - name: Guardar evidencias da atualizacao automatica
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
           name: installer-update-evidence
-          path: |
-            source/build/update-smoke/evidence/
-            source/build/cleanup-smoke/evidence/
+          path: source/build/update-smoke/evidence/
           if-no-files-found: ignore
           retention-days: 14
