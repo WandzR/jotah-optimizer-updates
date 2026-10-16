@@ -10,7 +10,7 @@ concurrency:
 jobs:
   release:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: source
@@ -54,6 +54,9 @@ jobs:
           JOTAH_RELEASE_PRIVATE_KEY: ${{ secrets.JOTAH_RELEASE_PRIVATE_KEY }}
           JOTAH_REQUIRE_AUTHENTICODE: ${{ vars.JOTAH_REQUIRE_AUTHENTICODE }}
         run: npm run build:installer
+      - name: Confirmar limpeza do codigo legado antes de publicar
+        shell: pwsh
+        run: ./tools/Test-Legacy-Source-Cleanup.ps1 -FromVersion '0.1.55'
       - name: Verificar e publicar
         env:
           GH_TOKEN: ${{ github.token }}
@@ -62,12 +65,14 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.0' -ToVersion $version
+          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.0' -ToVersion $version -RequireProtectedPackage
       - name: Guardar evidências do ensaio
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: installer-update-evidence
-          path: source/build/update-smoke/evidence/
+          path: |
+            source/build/update-smoke/evidence/
+            source/build/cleanup-smoke/evidence/
           if-no-files-found: ignore
           retention-days: 14
