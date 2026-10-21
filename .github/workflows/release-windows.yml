@@ -46,6 +46,9 @@ jobs:
           [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'tools/Test-Installer-Update.ps1'), [ref]$parseTokens, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count) { throw 'Sintaxe do ensaio de instalação inválida.' }
       - run: npm test
+      - name: Conferir prioridade e recuperacao da inicializacao
+        shell: powershell
+        run: ./tools/Test-Startup-Registration.ps1
       - name: Conferir restauracao do motor Windows
         shell: pwsh
         run: |
@@ -73,7 +76,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: installer-build-evidence
-          path: source/build/cleanup-smoke/evidence/
+          path: |
+            source/build/cleanup-smoke/evidence/
+            source/build/startup-registration-evidence/
           if-no-files-found: ignore
           retention-days: 14
   update:
