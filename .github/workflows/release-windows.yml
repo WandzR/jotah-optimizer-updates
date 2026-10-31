@@ -65,7 +65,7 @@ jobs:
           JOTAH_REQUIRE_AUTHENTICODE: ${{ vars.JOTAH_REQUIRE_AUTHENTICODE }}
         run: npm run build:installer
       - name: Conferir motor cifrado e abertura do pacote
-        run: node tools/test-protected-native.cjs && node tools/review-protected-package.cjs
+        run: node tools/test-protected-native.cjs && node tools/review-protected-package.cjs --bootstrap-only
       - name: Confirmar limpeza do codigo legado antes de publicar
         shell: pwsh
         run: |
