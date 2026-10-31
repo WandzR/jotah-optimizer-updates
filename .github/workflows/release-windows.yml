@@ -114,7 +114,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.85' -ToVersion $version -RequireProtectedPackage
+          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.85' -ToVersion $version -RequireProtectedPackage -RequireSealedStates
       - name: Guardar evidencias da atualizacao automatica
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
