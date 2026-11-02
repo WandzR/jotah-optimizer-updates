@@ -65,7 +65,7 @@ jobs:
           JOTAH_REQUIRE_AUTHENTICODE: ${{ vars.JOTAH_REQUIRE_AUTHENTICODE }}
         run: npm run build:installer
       - name: Conferir motor cifrado e abertura do pacote
-        run: node tools/test-protected-native.cjs && node tools/review-protected-package.cjs --bootstrap-only
+        run: node tools/test-protected-native.cjs && node tools/check-auth-recovery.cjs && node tools/review-protected-package.cjs --bootstrap-only
       - name: Confirmar limpeza do codigo legado antes de publicar
         shell: pwsh
         run: |
@@ -83,6 +83,7 @@ jobs:
           path: |
             source/build/cleanup-smoke-*/evidence/
             source/build/startup-registration-evidence/
+            source/build/auth-recovery-smoke/result.json
           if-no-files-found: ignore
           retention-days: 14
   update:
