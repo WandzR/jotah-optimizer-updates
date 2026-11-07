@@ -88,6 +88,10 @@ jobs:
           retention-days: 14
   update:
     needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        from_version: ['0.1.85', '0.1.110']
     runs-on: windows-latest
     timeout-minutes: 15
     permissions:
@@ -115,12 +119,12 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.85' -ToVersion $version -RequireProtectedPackage -RequireSealedStates
+          ./tools/Test-Installer-Update.ps1 -FromVersion '${{ matrix.from_version }}' -ToVersion $version -RequireProtectedPackage -RequireSealedStates
       - name: Guardar evidencias da atualizacao automatica
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: installer-update-evidence
+          name: installer-update-evidence-${{ matrix.from_version }}
           path: source/build/update-smoke/evidence/
           if-no-files-found: ignore
           retention-days: 14
