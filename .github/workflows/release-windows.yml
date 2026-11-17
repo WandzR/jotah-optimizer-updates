@@ -71,6 +71,11 @@ jobs:
         run: |
           ./tools/Test-Legacy-Source-Cleanup.ps1 -FromVersion '0.1.55'
           ./tools/Test-Legacy-Source-Cleanup.ps1 -FromVersion '0.1.85'
+      - name: Validar o instalador candidato sobre a versão estável anterior
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          ./tools/Test-Installer-Update.ps1 -FromVersion '0.1.112' -ToVersion $version -CandidateInstaller -RequireProtectedPackage -RequireSealedStates
       - name: Verificar e publicar
         env:
           GH_TOKEN: ${{ github.token }}
@@ -84,6 +89,7 @@ jobs:
             source/build/cleanup-smoke-*/evidence/
             source/build/startup-registration-evidence/
             source/build/auth-recovery-smoke/result.json
+            source/build/update-smoke/evidence/
           if-no-files-found: ignore
           retention-days: 14
   update:
@@ -91,7 +97,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        from_version: ['0.1.85', '0.1.111']
+        from_version: ['0.1.85', '0.1.112']
     runs-on: windows-latest
     timeout-minutes: 15
     permissions:
